@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rastreamento de Requisição</title>
+
+  <!-- bpmn-js viewer -->
+  <script src="https://unpkg.com/bpmn-js@11/dist/bpmn-viewer.development.js"></script>
+  <!-- PapaParse para fazer o parse do CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; }
+    header { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    input[type=text] {
+      padding: .5rem .75rem; border: 1px solid #ccc; border-radius: .375rem;
+      min-width: 220px;
+    }
+    button {
+      padding: .5rem 1rem; background:#1976d2; color:#fff; border:none;
+      border-radius:.375rem; cursor:pointer;
+    }
+    button:hover { background:#115293; }
+    #status { padding:.5rem 0 0 .5rem; color:#d7191c; }
+
+    /* destaque da etapa atual */
+    .djs-element.highlight > .djs-visual > :first-child {
+      stroke:#d7191c !important; stroke-width:4 !important; fill:#fff5f5 !important;
+    }
+    #canvas { width:100%; height:65vh; border:1px solid #eee; }
+    @media(max-width:600px){ #canvas{height:55vh;} }
+  </style>
+</head>
+<body>
+  <header>
+    <input id="reqInput" placeholder="Digite o nº da requisição…" />
+    <button id="buscarBtn">Buscar</button>
+    <span id="status"></span>
+  </header>
+
+  <div id="canvas"></div>
+
+  <script>
+  // ---------- CONFIGURE AQUI -------------------------------------------------
+  const SHEET_ID   = '1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv';
+//   const SHEET_ID   = 'https://docs.google.com/spreadsheets/d/1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv/edit?usp=sharing&ouid=103788336064526084098&rtpof=true&sd=true';
+  const SHEET_NAME = 'Etapas';           // nome da aba publicada
+  const CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+//   const CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSl9yEI5sDJr5uEO4tuv_FPGfhz1hczKFi2WULza3BDBYHAiRdWQuIDP_udIPQWlw/pub?gid=1415628003&single=true&output=csv';
+  const BPMN_FILE  = 'processo.bpmn';    // seu diagrama exportado
+  // --------------------------------------------------------------------------
+
+  // Carrega diagrama BPMN
+  const viewer = new BpmnJS({ container:'#canvas' });
+  fetch(BPMN_FILE).then(r=>r.text()).then(xml=>viewer.importXML(xml));
+
+  // Cache da planilha (evita vários downloads)
+  let planilha = null;
+  async function carregarPlanilha() {
+    // if (planilha) return planilha; // já carregada
+    const csvText = await fetch(CSV_URL).then(r=>r.text());
+    planilha = Papa.parse(csvText, { header:true }).data;
+    /* Espera-se cabeçalho:
+       requisicao, etapa
+       REQ-2024-001, elaboracao_pca
+    */
+    return planilha;
+  }
+
+  async function buscarEtapa(){
+    const req = document.getElementById('reqInput').value.trim();
+    const status = document.getElementById('status');
+    status.textContent = '';
+
+    if (!req){ status.textContent='Digite o número da requisição.'; return; }
+
+    let dados;
+    try{ dados = await carregarPlanilha(); }
+    catch(err){ status.textContent='Falha ao carregar a planilha.'; console.error(err); return; }
+
+    const registro = dados.find(l => l.requisicao === req);
+    if (!registro){ status.textContent='Requisição não encontrada.'; return; }
+
+    const etapaId = registro.etapa?.trim();
+    const canvas = viewer.get('canvas');
+    const registry = viewer.get('elementRegistry');
+
+    // Limpa marcações anteriores
+    registry.forEach(el => canvas.removeMarker(el,'highlight'));
+
+    const el = registry.get(etapaId);
+    if (!el){ status.textContent=`Etapa “${etapaId}” não existe no diagrama.`; return; }
+
+    canvas.scrollToElement(el);
+    canvas.addMarker(el,'highlight');
+  }
+
+  document.getElementById('buscarBtn').addEventListener('click',buscarEtapa);
+  document.getElementById('reqInput').addEventListener('keyup',e=>{
+    if(e.key==='Enter') buscarEtapa();
+  });
+  </script>
+</body>
+</html>
