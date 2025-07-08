@@ -22,7 +22,13 @@
       border-radius:.375rem; cursor:pointer;
     }
     button:hover { background:#115293; }
+    button:disabled {
+      background: #ccc; cursor: not-allowed;
+    }
     #status { padding:.5rem 0 0 .5rem; color:#d7191c; }
+    #currentReq {
+      margin-top: 1rem; font-weight: bold; color: #1976d2;
+    }
 
     /* destaque da etapa atual */
     .djs-element.highlight > .djs-visual > :first-child {
@@ -34,21 +40,21 @@
 </head>
 <body>
   <header>
-    <input id="reqInput" placeholder="Número da requisição" />
+    <input id="reqInput" placeholder="Número do DFD" />
     <button id="buscarBtn">Buscar</button>
     <span id="status"></span>
   </header>
 
   <div id="canvas"></div>
-
+  <div id="currentReq"></div>
   <script>
   // ---------- CONFIGURE AQUI -------------------------------------------------
-  const SHEET_ID   = '1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv';
-//   const SHEET_ID   = 'https://docs.google.com/spreadsheets/d/1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv/edit?usp=sharing&ouid=103788336064526084098&rtpof=true&sd=true';
+  // const SHEET_ID   = '1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv'; // planilha teste_rogerio
+  const SHEET_ID   = '1RuwHAtPGgFzhQS6yGv_heHLOIbakw0fQ'; // planilha oficial
   const SHEET_NAME = 'Etapas';           // nome da aba publicada
   const CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
 //   const CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSl9yEI5sDJr5uEO4tuv_FPGfhz1hczKFi2WULza3BDBYHAiRdWQuIDP_udIPQWlw/pub?gid=1415628003&single=true&output=csv';
-  const BPMN_FILE  = 'processo.bpmn';    // seu diagrama exportado
+  const BPMN_FILE  = 'processo.bpmn';    // diagrama exportado
   // --------------------------------------------------------------------------
 
   // Carrega diagrama BPMN
@@ -62,7 +68,7 @@
     const csvText = await fetch(CSV_URL).then(r=>r.text());
     planilha = Papa.parse(csvText, { header:true }).data;
     /* Espera-se cabeçalho:
-       requisicao, etapa
+       Nº DFD, etapa
        REQ-2024-001, elaboracao_pca
     */
     return planilha;
@@ -71,29 +77,55 @@
   async function buscarEtapa(){
     const req = document.getElementById('reqInput').value.trim();
     const status = document.getElementById('status');
+    const buscarBtn = document.getElementById('buscarBtn');
+    const currentReq = document.getElementById('currentReq');
     status.textContent = '';
 
-    if (!req){ status.textContent='Digite o número da requisição.'; return; }
+    if (!req){ 
+      status.textContent = 'Digite o número da requisição.'; 
+      buscarBtn.disabled = false; 
+      return; 
+    }
+
+    buscarBtn.disabled = true;
+    status.textContent = 'Buscando...';
 
     let dados;
-    try{ dados = await carregarPlanilha(); }
-    catch(err){ status.textContent='Falha ao carregar a planilha.'; console.error(err); return; }
+    try { 
+      dados = await carregarPlanilha(); 
+    } catch (err) { 
+      status.textContent = 'Falha ao carregar a planilha.'; 
+      console.error(err); 
+      buscarBtn.disabled = false; 
+      return; 
+    }
 
-    const registro = dados.find(l => l.requisicao === req);
-    if (!registro){ status.textContent='Requisição não encontrada.'; return; }
+    const registro = dados.find(l => l['Nº DFD'] === req);
+    if (!registro) { 
+      status.textContent = 'Requisição não encontrada.'; 
+      buscarBtn.disabled = false; 
+      return; 
+    }
 
     const etapaId = registro.etapa?.trim();
     const canvas = viewer.get('canvas');
     const registry = viewer.get('elementRegistry');
 
     // Limpa marcações anteriores
-    registry.forEach(el => canvas.removeMarker(el,'highlight'));
+    registry.forEach(el => canvas.removeMarker(el, 'highlight'));
 
     const el = registry.get(etapaId);
-    if (!el){ status.textContent=`Etapa “${etapaId}” não existe no diagrama.`; return; }
+    if (!el) { 
+      status.textContent = `Etapa “${etapaId}” não existe no diagrama.`; 
+      buscarBtn.disabled = false; 
+      return; 
+    }
 
     canvas.scrollToElement(el);
-    canvas.addMarker(el,'highlight');
+    canvas.addMarker(el, 'highlight');
+    status.textContent = '';
+    currentReq.textContent = `Exibindo requisição número: ${req}`;
+    buscarBtn.disabled = false;
   }
 
   document.getElementById('buscarBtn').addEventListener('click',buscarEtapa);
