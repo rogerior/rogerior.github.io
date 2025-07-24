@@ -32,10 +32,38 @@
 
     /* destaque da etapa atual */
     .djs-element.highlight > .djs-visual > :first-child {
-      stroke:#d7191c !important; stroke-width:4 !important; fill:#fff5f5 !important;
+      stroke: #00008b !important;
+      stroke-width: 4 !important;
+      fill: #add8e6 !important;
     }
-    #canvas { width:100%; height:95vh; border:1px solid #eee; }
+    #canvas { width:100%; height:58vh; border:1px solid #eee; }
     @media(max-width:600px){ #canvas{height:95vh;} }
+
+    /* Estilos para a seção de histórico */
+    #historicoSection {
+      display: none;
+      margin-top: 1rem;
+    }
+    #historicoTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #historicoTable th, #historicoTable td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    #historicoTable th {
+      background-color: #0072b9;
+      color: #fff;
+      text-align: left;
+    }
+    /* Linhas alternadas do histórico */
+    #historicoTable tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+    #historicoTable tbody tr:nth-child(even) {
+      background-color: #e6f4fe;
+    }
   </style>
 </head>
 <body>
@@ -47,13 +75,31 @@
 
   <div id="canvas"></div>
   <div id="currentReq"></div>
+  <!-- Seção de Histórico de movimentação -->
+  <div id="historicoSection">
+    <h2>Histórico de movimentação</h2>
+    <table id="historicoTable" border="1" cellpadding="5" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Data/hora</th>
+          <th>Nº DFD</th>
+          <th>Status</th>
+          <th>Pessoa</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
   <script>
   // ---------- CONFIGURE AQUI -------------------------------------------------
   // const SHEET_ID   = '1rNyN7sYhY9yxnk2QXKen6jnmr49d0WOv'; // planilha teste_rogerio
-  const SHEET_ID   = '1RuwHAtPGgFzhQS6yGv_heHLOIbakw0fQ'; // planilha oficial
+  // const SHEET_ID   = '1RuwHAtPGgFzhQS6yGv_heHLOIbakw0fQ'; // planilha oficial
+  const SHEET_ID   = '1qzkVIkI1YoVkuhir18xxYmnVhEa0f3FD5rsaBamu-A4'; // planilha oficial
   const SHEET_NAME = 'Etapas';           // nome da aba publicada
   const CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-//   const CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSl9yEI5sDJr5uEO4tuv_FPGfhz1hczKFi2WULza3BDBYHAiRdWQuIDP_udIPQWlw/pub?gid=1415628003&single=true&output=csv';
+  // Configuração da aba Histórico
+  const HIST_SHEET_NAME = 'Histórico';
+  const HIST_CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(HIST_SHEET_NAME)}`;
   const BPMN_FILE  = 'processo.bpmn';    // diagrama exportado
   // --------------------------------------------------------------------------
 
@@ -63,6 +109,7 @@
 
   // Cache da planilha (evita vários downloads)
   let planilha = null;
+  let historicoCache = null;
   async function carregarPlanilha() {
     // if (planilha) return planilha; // já carregada
     const csvText = await fetch(CSV_URL).then(r=>r.text());
@@ -72,6 +119,13 @@
        REQ-2024-001, elaboracao_pca
     */
     return planilha;
+  }
+  // Função para carregar histórico (evita vários downloads)
+  async function carregarHistorico() {
+    // if (historicoCache) return historicoCache;
+    const csvText = await fetch(HIST_CSV_URL).then(r=>r.text());
+    historicoCache = Papa.parse(csvText, { header:true }).data;
+    return historicoCache;
   }
 
   async function buscarEtapa(){
@@ -125,6 +179,25 @@
     canvas.addMarker(el, 'highlight');
     status.textContent = '';
     currentReq.textContent = `Exibindo requisição número: ${req}`;
+    // Carrega e exibe histórico de movimentação para esta requisição
+    try {
+      const todos = await carregarHistorico();
+      const itens = todos.filter(l => l['Nº DFD'] === req);
+      const tbody = document.getElementById('historicoTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      itens.forEach(item => {
+        const tr = document.createElement('tr');
+        ['Data/hora','Nº DFD','Status','Pessoa'].forEach(col => {
+          const td = document.createElement('td');
+          td.textContent = item[col] || '';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      document.getElementById('historicoSection').style.display = itens.length ? 'block' : 'none';
+    } catch(err) {
+      console.error('Erro ao carregar histórico:', err);
+    }
     buscarBtn.disabled = false;
   }
 
