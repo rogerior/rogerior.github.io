@@ -69,6 +69,12 @@
 <body>
   <header>
     <input id="reqInput" placeholder="Número do DFD" />
+    <select id="classificacaoSelect">
+      <option value="">Selecione a classificação</option>
+      <option value="Material">Material</option>
+      <option value="Serviço">Serviço</option>
+    </select>
+    <input id="itemInput" placeholder="Nº do item no DFD" type="text" />
     <button id="buscarBtn">Buscar</button>
     <span id="status"></span>
   </header>
@@ -84,7 +90,7 @@
           <th>Data/hora</th>
           <th>Nº DFD</th>
           <th>Status</th>
-          <th>Pessoa</th>
+          <th>Responsável</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -130,15 +136,17 @@
 
   async function buscarEtapa(){
     const req = document.getElementById('reqInput').value.trim();
+    const classificacao = document.getElementById('classificacaoSelect').value.trim();
+    const item = document.getElementById('itemInput').value.trim();
     const status = document.getElementById('status');
     const buscarBtn = document.getElementById('buscarBtn');
     const currentReq = document.getElementById('currentReq');
     status.textContent = '';
 
-    if (!req){ 
-      status.textContent = 'Digite o número da requisição.'; 
-      buscarBtn.disabled = false; 
-      return; 
+    if (!req || !classificacao || !item){ 
+      status.textContent = 'Preencha todos os campos da requisição.';
+      buscarBtn.disabled = false;
+      return;
     }
 
     buscarBtn.disabled = true;
@@ -148,17 +156,17 @@
     try { 
       dados = await carregarPlanilha(); 
     } catch (err) { 
-      status.textContent = 'Falha ao carregar a planilha.'; 
-      console.error(err); 
-      buscarBtn.disabled = false; 
-      return; 
+      status.textContent = 'Falha ao carregar a planilha.';
+      console.error(err);
+      buscarBtn.disabled = false;
+      return;
     }
 
-    const registro = dados.find(l => l['Nº DFD'] === req);
+    const registro = dados.find(l => l['Nº DFD'] === req && l['Classificação da contratação'] === classificacao && l['Nº do item no DFD'] === item);
     if (!registro) { 
-      status.textContent = 'Requisição não encontrada.'; 
-      buscarBtn.disabled = false; 
-      return; 
+      status.textContent = 'Requisição não encontrada.';
+      buscarBtn.disabled = false;
+      return;
     }
 
     const etapaId = registro.etapa?.trim();
@@ -170,15 +178,24 @@
 
     const el = registry.get(etapaId);
     if (!el) { 
-      status.textContent = `Etapa “${etapaId}” não existe no diagrama.`; 
-      buscarBtn.disabled = false; 
-      return; 
+      status.textContent = `Etapa “${etapaId}” não existe no diagrama.`;
+      buscarBtn.disabled = false;
+      return;
     }
 
     canvas.scrollToElement(el);
     canvas.addMarker(el, 'highlight');
     status.textContent = '';
-    currentReq.textContent = `Exibindo requisição número: ${req}`;
+    // Atualiza a exibição da requisição com informações adicionais
+    currentReq.innerHTML = `<div style="color: black;">` +
+                           `<p><h2>Requisição</h2></p>` +
+                           `<p>Nº DFD: ${req}</p>` +
+                           `<p>Classificação da contratação: ${classificacao}</p>` +
+                           `<p>Nº do item no DFD: ${item}</p>` +
+                           `<p>Nº do processo SEI: ${registro['Nº do processo SEI'] || ''}</p>` +
+                           `<p>Nº da compra: ${registro['Nº da compra'] || ''}</p>` +
+                           `<p>Nº da requisição do SIPAC: ${registro['Nº da requisição do SIPAC'] || ''}</p>` +
+                           `</div>`;
     // Carrega e exibe histórico de movimentação para esta requisição
     try {
       const todos = await carregarHistorico();
@@ -187,7 +204,7 @@
       tbody.innerHTML = '';
       itens.forEach(item => {
         const tr = document.createElement('tr');
-        ['Data/hora','Nº DFD','Status','Pessoa'].forEach(col => {
+        ['Data/hora','Nº DFD','Status','Responsável'].forEach(col => {
           const td = document.createElement('td');
           td.textContent = item[col] || '';
           tr.appendChild(td);
