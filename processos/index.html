@@ -12,10 +12,15 @@
 
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; }
-    header { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    header { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    header div {
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      min-width: 220px;
+    }
     input[type=text] {
       padding: .5rem .75rem; border: 1px solid #ccc; border-radius: .375rem;
-      min-width: 220px;
     }
     button {
       padding: .5rem 1rem; background:#1976d2; color:#fff; border:none;
@@ -68,19 +73,29 @@
 </head>
 <body>
   <header>
-    <input id="reqInput" placeholder="Número do DFD" />
-    <select id="classificacaoSelect">
-      <option value="">Selecione a classificação</option>
-      <option value="Material">Material</option>
-      <option value="Serviço">Serviço</option>
-    </select>
-    <input id="itemInput" placeholder="Nº do item no DFD" type="text" />
+    <div>
+      <label for="reqInput">Número do DFD</label>
+      <input id="reqInput" type="text" />
+    </div>
+    <div>
+      <label for="classificacaoSelect">Classificação da contratação</label>
+      <select id="classificacaoSelect">
+        <option value="">Selecione a classificação</option>
+        <option value="Material">Material</option>
+        <option value="Serviço">Serviço</option>
+      </select>
+    </div>
+    <div>
+      <label for="itemInput">Nº do item no DFD</label>
+      <input id="itemInput" type="text" />
+    </div>
     <button id="buscarBtn">Buscar</button>
     <span id="status"></span>
   </header>
 
-  <div id="canvas"></div>
   <div id="currentReq"></div>
+  <div id="canvas"></div>
+
   <!-- Seção de Histórico de movimentação -->
   <div id="historicoSection">
     <h2>Histórico de movimentação</h2>
