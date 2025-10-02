@@ -40,7 +40,7 @@
     }
     #status { padding:.5rem 0 0 .5rem; color:#d7191c; }
     #currentReq {
-      margin-top: 1rem; font-weight: bold; color: #1976d2;
+      margin-top: 1rem; color: #1976d2;
     }
 
     /* destaque da etapa atual */
@@ -218,21 +218,21 @@
       // Se não encontrou a requisição, exibe informações básicas
       currentReq.innerHTML = `<div style="color: black;">` +
                              `<p><h2>Requisição</h2></p>` +
-                             `<p>Nº DFD: ${req}</p>` +
-                             `<p>Classificação da contratação: ${classificacao}</p>` +
-                             `<p>Nº do item no DFD: ${item}</p>` +
+                             `<p><strong>Nº DFD:</strong> ${req}</p>` +
+                             `<p><strong>Classificação da contratação:</strong> ${classificacao}</p>` +
+                             `<p><strong>Nº do item no DFD:</strong> ${item}</p>` +
                              `<p style="color: #d7191c;"><strong>Requisição não encontrada.</strong></p>` +
                              `</div>`;
     } else {
       // Se encontrou a requisição, exibe todas as informações
       currentReq.innerHTML = `<div style="color: black;">` +
                              `<p><h2>Requisição</h2></p>` +
-                             `<p>Nº DFD: ${req}</p>` +
-                             `<p>Classificação da contratação: ${classificacao}</p>` +
-                             `<p>Nº do item no DFD: ${item}</p>` +
-                             `<p>Nº do processo SEI: ${registro['Nº do processo SEI'] || ''}</p>` +
-                             `<p>Nº da compra: ${registro['Nº da compra'] || ''}</p>` +
-                             `<p>Nº da requisição do SIPAC: ${registro['Nº da requisição do SIPAC'] || ''}</p>` +
+                             `<p><strong>Nº DFD:</strong> ${req}</p>` +
+                             `<p><strong>Classificação da contratação:</strong> ${classificacao}</p>` +
+                             `<p><strong>Nº do item no DFD:</strong> ${item}</p>` +
+                             `<p><strong>Nº do processo SEI:</strong> ${registro['Nº do processo SEI'] || ''}</p>` +
+                             `<p><strong>Nº da compra:</strong> ${registro['Nº da compra'] || ''}</p>` +
+                             `<p><strong>Nº da requisição do SIPAC:</strong> ${registro['Nº da requisição do SIPAC'] || ''}</p>` +
                              `</div>`;
     }
     // Carrega e exibe histórico de movimentação para esta requisição
