@@ -112,8 +112,9 @@
         <tr>
           <th>Data/hora</th>
           <th>Nº DFD</th>
-          <th>Status</th>
+          <th>Etapa</th>
           <th>Responsável</th>
+          <th>Duração na etapa</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -186,13 +187,16 @@
     }
 
     const registro = dados.find(l => l['Nº DFD'] === req && l['Classificação da contratação'] === classificacao && l['Nº do item no DFD'] === item);
+    
+    let etapaId;
     if (!registro) { 
+      // Se a requisição não foi encontrada, direciona para a etapa padrão
+      etapaId = 'Id_f08bb724-75f2-4079-8d3a-6cd3d522cfbd';
       status.textContent = 'Requisição não encontrada.';
-      buscarBtn.disabled = false;
-      return;
+    } else {
+      etapaId = registro.etapa?.trim();
+      status.textContent = '';
     }
-
-    const etapaId = registro.etapa?.trim();
     const canvas = viewer.get('canvas');
     const registry = viewer.get('elementRegistry');
 
@@ -208,33 +212,90 @@
 
     canvas.scrollToElement(el);
     canvas.addMarker(el, 'highlight');
-    status.textContent = '';
+    
     // Atualiza a exibição da requisição com informações adicionais
-    currentReq.innerHTML = `<div style="color: black;">` +
-                           `<p><h2>Requisição</h2></p>` +
-                           `<p>Nº DFD: ${req}</p>` +
-                           `<p>Classificação da contratação: ${classificacao}</p>` +
-                           `<p>Nº do item no DFD: ${item}</p>` +
-                           `<p>Nº do processo SEI: ${registro['Nº do processo SEI'] || ''}</p>` +
-                           `<p>Nº da compra: ${registro['Nº da compra'] || ''}</p>` +
-                           `<p>Nº da requisição do SIPAC: ${registro['Nº da requisição do SIPAC'] || ''}</p>` +
-                           `</div>`;
+    if (!registro) {
+      // Se não encontrou a requisição, exibe informações básicas
+      currentReq.innerHTML = `<div style="color: black;">` +
+                             `<p><h2>Requisição</h2></p>` +
+                             `<p>Nº DFD: ${req}</p>` +
+                             `<p>Classificação da contratação: ${classificacao}</p>` +
+                             `<p>Nº do item no DFD: ${item}</p>` +
+                             `<p style="color: #d7191c;"><strong>Requisição não encontrada.</strong></p>` +
+                             `</div>`;
+    } else {
+      // Se encontrou a requisição, exibe todas as informações
+      currentReq.innerHTML = `<div style="color: black;">` +
+                             `<p><h2>Requisição</h2></p>` +
+                             `<p>Nº DFD: ${req}</p>` +
+                             `<p>Classificação da contratação: ${classificacao}</p>` +
+                             `<p>Nº do item no DFD: ${item}</p>` +
+                             `<p>Nº do processo SEI: ${registro['Nº do processo SEI'] || ''}</p>` +
+                             `<p>Nº da compra: ${registro['Nº da compra'] || ''}</p>` +
+                             `<p>Nº da requisição do SIPAC: ${registro['Nº da requisição do SIPAC'] || ''}</p>` +
+                             `</div>`;
+    }
     // Carrega e exibe histórico de movimentação para esta requisição
     try {
       const todos = await carregarHistorico();
-      const itens = todos.filter(l => l['Nº DFD'] === req);
-      const tbody = document.getElementById('historicoTable').querySelector('tbody');
-      tbody.innerHTML = '';
-      itens.forEach(item => {
-        const tr = document.createElement('tr');
-        ['Data/hora','Nº DFD','Status','Responsável'].forEach(col => {
-          const td = document.createElement('td');
-          td.textContent = item[col] || '';
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-      document.getElementById('historicoSection').style.display = itens.length ? 'block' : 'none';
+      let itens = todos.filter(l => l['Nº DFD'] === req);
+
+      // Se a requisição não foi encontrada na planilha principal, 
+      // não haverá histórico para exibir
+      if (!registro) {
+        document.getElementById('historicoSection').style.display = 'none';
+      } else {
+        // New simplified date parser for expected format dd/mm/yyyy [HH:MM[:SS]]
+        function parseDate(dateStr) {
+          if (!dateStr) return new Date(NaN);
+          dateStr = dateStr.trim();
+          if (dateStr.indexOf('/') > -1) {
+            let parts = dateStr.split(' ');
+            let dateParts = parts[0].split('/');
+            if (dateParts.length !== 3) return new Date(NaN);
+            let day = parseInt(dateParts[0], 10);
+            let month = parseInt(dateParts[1], 10);
+            let year = parseInt(dateParts[2], 10);
+            let timeParts = parts[1] ? parts[1].split(':') : [];
+            let hours = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 0;
+            let minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+            let seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
+            return new Date(year, month - 1, day, hours, minutes, seconds);
+          } else {
+            return new Date(dateStr);
+          }
+        }
+
+        // Sort items by Data/hora ascending
+        itens.sort((a, b) => parseDate(a['Data/hora']) - parseDate(b['Data/hora']));
+
+        const tbody = document.getElementById('historicoTable').querySelector('tbody');
+        tbody.innerHTML = '';
+        for (let i = 0; i < itens.length; i++) {
+          const item = itens[i];
+          const tr = document.createElement('tr');
+          ['Data/hora','Nº DFD','Etapa','Responsável'].forEach(col => {
+            const td = document.createElement('td');
+            td.textContent = item[col] || '';
+            tr.appendChild(td);
+          });
+          let duration = '';
+          if (i < itens.length - 1) {
+            const currentTime = parseDate(item['Data/hora']);
+            const nextTime = parseDate(itens[i + 1]['Data/hora']);
+            const diffMs = nextTime - currentTime;
+            if (!isNaN(diffMs) && diffMs >= 0) {
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+              duration = diffDays === 1 ? '1 dia' : (diffDays === 0 ? '0 dia' : diffDays + ' dias');
+            }
+          }
+          const tdDuration = document.createElement('td');
+          tdDuration.textContent = duration;
+          tr.appendChild(tdDuration);
+          tbody.appendChild(tr);
+        }
+        document.getElementById('historicoSection').style.display = itens.length ? 'block' : 'none';
+      }
     } catch(err) {
       console.error('Erro ao carregar histórico:', err);
     }
