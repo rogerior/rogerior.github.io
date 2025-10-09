@@ -101,8 +101,8 @@
     <span id="status"></span>
   </header>
 
-  <div id="currentReq"></div>
   <div id="canvas"></div>
+  <div id="currentReq"></div>
 
   <!-- Seção de Histórico de movimentação -->
   <div id="historicoSection">
@@ -192,7 +192,7 @@
     if (!registro) { 
       // Se a requisição não foi encontrada, direciona para a etapa padrão
       etapaId = 'Id_f08bb724-75f2-4079-8d3a-6cd3d522cfbd';
-      status.textContent = 'Requisição não encontrada.';
+      status.textContent = 'Demanda não encontrada ou PCA não consolidado.';
     } else {
       etapaId = registro.etapa?.trim();
       status.textContent = '';
@@ -217,16 +217,16 @@
     if (!registro) {
       // Se não encontrou a requisição, exibe informações básicas
       currentReq.innerHTML = `<div style="color: black;">` +
-                             `<p><h2>Requisição</h2></p>` +
+                             `<p><h2>Demanda</h2></p>` +
                              `<p><strong>Nº DFD:</strong> ${req}</p>` +
                              `<p><strong>Classificação da contratação:</strong> ${classificacao}</p>` +
                              `<p><strong>Nº do item no DFD:</strong> ${item}</p>` +
-                             `<p style="color: #d7191c;"><strong>Requisição não encontrada.</strong></p>` +
+                            //  `<p style="color: #d7191c;"><strong>Requisição não encontrada.</strong></p>` +
                              `</div>`;
     } else {
       // Se encontrou a requisição, exibe todas as informações
       currentReq.innerHTML = `<div style="color: black;">` +
-                             `<p><h2>Requisição</h2></p>` +
+                             `<p><h2>Demanda</h2></p>` +
                              `<p><strong>Nº DFD:</strong> ${req}</p>` +
                              `<p><strong>Classificação da contratação:</strong> ${classificacao}</p>` +
                              `<p><strong>Nº do item no DFD:</strong> ${item}</p>` +
