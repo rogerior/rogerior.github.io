@@ -376,7 +376,7 @@
         </bizagi:BizagiExtendedAttributeOrders>
       </bizagi:BizagiExtensions>
     </extensionElements>
-    <participant id="Id_cd5c340d-5d9a-4a7a-b58a-9d1b4a9a8ccc" name="Processo principal" processRef="Id_b75f7394-313a-4b5e-a9f7-6d4521379a51">
+    <!-- <participant id="Id_cd5c340d-5d9a-4a7a-b58a-9d1b4a9a8ccc" name="Processo principal" processRef="Id_b75f7394-313a-4b5e-a9f7-6d4521379a51">
       <documentation />
       <extensionElements>
         <bizagi:BizagiExtensions xmlns:bizagi="http://www.bizagi.com/bpmn20">
@@ -390,7 +390,7 @@
           </bizagi:BizagiProperties>
         </bizagi:BizagiExtensions>
       </extensionElements>
-    </participant>
+    </participant> -->
     <participant id="Id_b150be43-8a43-4aa6-8fe6-a64e89ecfd16" name="Universidade Federal de Goiás" processRef="Id_da4c96f7-94e2-4219-95ff-898df4e2dd62">
       <documentation />
       <extensionElements>
